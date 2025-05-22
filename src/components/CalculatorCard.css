@@ -1,0 +1,31 @@
+.calculator-card {
+  min-width: 275px;
+  transition: transform 0.2s ease;
+}
+
+.calculator-card:hover {
+  transform: translateY(-2px);
+}
+
+.calculator-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.calculator-icon {
+  margin-right: 8px;
+}
+
+.calculator-title {
+  margin-left: 8px;
+}
+
+.calculator-expression {
+  margin-bottom: 8px;
+}
+
+.calculator-result {
+  color: #1976d2;
+  font-weight: 500;
+}
