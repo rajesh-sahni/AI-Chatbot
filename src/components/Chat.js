@@ -3,7 +3,11 @@ import { Box, TextField, IconButton, Paper, Typography } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import Message from "./Message";
-import pluginManager from "../plugins/PluginManager";
+import RichTextMessage from "../features/RichTextMessage";
+import MessageStatus from "../features/MessageStatus";
+import TypingIndicator from "../features/TypingIndicator";
+import naturalLanguageProcessor from "../features/NaturalLanguageProcessor";
+import { usePlugins } from "../features/DynamicPluginLoader";
 import weatherPlugin from "../plugins/WeatherPlugin";
 import calculatorPlugin from "../plugins/CalculatorPlugin";
 import dictionaryPlugin from "../plugins/DictionaryPlugin";
@@ -12,27 +16,35 @@ import "./Chat.css";
 const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [messageStatus, setMessageStatus] = useState(null);
   const messagesEndRef = useRef(null);
+  const { plugins, registerPlugin } = usePlugins();
+  const isProcessingRef = useRef(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Check API key status
-    const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
-    console.log("Weather API Key Status:", apiKey ? "Present" : "Missing");
-
-    // Register plugins
-    pluginManager.registerPlugin(weatherPlugin);
-    pluginManager.registerPlugin(calculatorPlugin);
-    pluginManager.registerPlugin(dictionaryPlugin);
+    // Register default plugins
+    try {
+      registerPlugin(weatherPlugin);
+      registerPlugin(calculatorPlugin);
+      registerPlugin(dictionaryPlugin);
+    } catch (error) {
+      console.error("Error registering plugins:", error);
+    }
 
     // Load messages from localStorage
     const savedMessages = localStorage.getItem("chatMessages");
     if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (error) {
+        console.error("Error loading messages:", error);
+      }
     }
   }, []);
 
   useEffect(() => {
-    // Save messages to localStorage
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
@@ -42,10 +54,25 @@ const Chat = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isTyping]);
+
+  const simulateTyping = async (callback) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setIsTyping(true);
+    try {
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 + Math.random() * 1000)
+      );
+      await callback();
+    } finally {
+      setIsTyping(false);
+      isProcessingRef.current = false;
+    }
+  };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isProcessingRef.current) return;
 
     const userMessage = {
       id: uuidv4(),
@@ -57,41 +84,58 @@ const Chat = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setMessageStatus({ status: "loading" });
 
     try {
-      const plugin = pluginManager.getPluginForCommand(input);
+      // Try natural language processing first
+      const nlResult = naturalLanguageProcessor.processInput(input);
+      const command = nlResult ? nlResult.fullCommand : input;
+
+      const plugin = plugins.find((p) => command.startsWith(`/${p.name}`));
+
       if (plugin) {
-        const result = await plugin.execute(input);
-        const pluginMessage = {
-          id: uuidv4(),
-          sender: "assistant",
-          content: input,
-          type: "plugin",
-          pluginData: plugin.render(result),
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, pluginMessage]);
+        await simulateTyping(async () => {
+          try {
+            const result = await plugin.execute(command);
+            const pluginMessage = {
+              id: uuidv4(),
+              sender: "assistant",
+              content: result,
+              type: "plugin",
+              pluginData: plugin.render(result),
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, pluginMessage]);
+            setMessageStatus(null);
+          } catch (error) {
+            // Add an error message to the chat
+            const errorMessage = {
+              id: uuidv4(),
+              sender: "assistant",
+              content: error.message || "An error occurred.",
+              type: "text",
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            setMessageStatus({ status: "error", error: error.message });
+          }
+        });
       } else {
-        // Handle natural language input (bonus feature)
-        const assistantMessage = {
-          id: uuidv4(),
-          sender: "assistant",
-          content:
-            "I'm sorry, I don't understand that command. Try using /weather, /calc, or /define followed by your query.",
-          type: "text",
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+        await simulateTyping(() => {
+          const assistantMessage = {
+            id: uuidv4(),
+            sender: "assistant",
+            content:
+              "I'm sorry, I don't understand that command. Try using natural language or commands like /weather, /calc, or /define.",
+            type: "text",
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+          setMessageStatus(null);
+        });
       }
     } catch (error) {
-      const errorMessage = {
-        id: uuidv4(),
-        sender: "assistant",
-        content: `Error: ${error.message}`,
-        type: "text",
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessageStatus({ status: "error", error: error.message });
     }
   };
 
@@ -103,81 +147,61 @@ const Chat = () => {
   };
 
   return (
-    <Box className="chat-container">
-      <Paper
-        className="chat-header"
-        elevation={3}
-        sx={{
-          background: "linear-gradient(to right, #1a237e, #0d47a1, #1976d2)",
-          backgroundSize: "200% 200%",
-          animation: "gradient 15s ease infinite",
-        }}
-      >
-        <Typography
-          variant="h5"
-          className="chat-header-title"
-          sx={{ color: "white" }}
-        >
+    <Box className="chat-wrapper">
+      <Paper className="chat-header" elevation={3}>
+        <Typography variant="h5" className="chat-header-title">
           AI Chatbot
         </Typography>
       </Paper>
-
-      <Box className="chat-messages-container">
-        {messages.map((message) => (
-          <Message key={message.id} message={message} />
-        ))}
-        <div ref={messagesEndRef} />
-      </Box>
-
-      <Paper className="chat-input-container" elevation={3}>
-        <Box className="chat-input-wrapper">
-          <TextField
-            className="chat-input"
-            fullWidth
-            variant="outlined"
-            placeholder="Type a message or use /weather, /calc, or /define..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            multiline
-            maxRows={4}
-            InputProps={{
-              style: {
-                borderRadius: "24px",
-                backgroundColor: "#f8f9fa",
-                border: "2px solid #e0e0e0",
-                transition: "all 0.3s ease",
-                fontSize: "1.1rem",
-                fontWeight: "500",
-                padding: "8px 16px",
-                letterSpacing: "0.3px",
-              },
-            }}
-          />
-          <IconButton
-            className="chat-send-button"
-            onClick={handleSend}
-            sx={{
-              background: "linear-gradient(45deg, #1976d2, #2196f3)",
-              color: "white",
-              width: "40px",
-              height: "40px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              "&:hover": {
-                background: "linear-gradient(45deg, #1565c0, #1976d2)",
-                transform: "translateY(-2px) scale(1.05)",
-                boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
-              },
-            }}
-          >
-            <SendIcon
-              sx={{ fontSize: "1.1rem", display: "flex", alignItems: "center" }}
-            />
-          </IconButton>
+      <Box className="chat-container">
+        <Box className="chat-messages-container">
+          {messages.map((message) => (
+            <React.Fragment key={message.id}>
+              {message.type === "text" ? (
+                <Box
+                  className={`message-container ${
+                    message.sender === "user" ? "user" : "assistant"
+                  }`}
+                >
+                  <RichTextMessage
+                    content={message.content}
+                    isUser={message.sender === "user"}
+                  />
+                </Box>
+              ) : (
+                <Message message={message} isUser={message.sender === "user"} />
+              )}
+            </React.Fragment>
+          ))}
+          {messageStatus && <MessageStatus {...messageStatus} />}
+          {isTyping && <TypingIndicator />}
+          <div ref={messagesEndRef} />
         </Box>
-      </Paper>
+
+        <Paper className="chat-input-container" elevation={3}>
+          <Box className="chat-input-wrapper">
+            <TextField
+              className="chat-input"
+              fullWidth
+              variant="outlined"
+              placeholder="Type a message or use natural language (e.g., /calc, /define, /weather)..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              multiline
+              maxRows={4}
+              disabled={isProcessingRef.current}
+            />
+            <IconButton
+              className="chat-send-button"
+              onClick={handleSend}
+              disabled={isProcessingRef.current}
+            >
+              <SendIcon />
+            </IconButton>
+          </Box>
+        </Paper>
+      </Box>
     </Box>
   );
 };

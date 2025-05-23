@@ -1,0 +1,16 @@
+.message-status-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #fff3e0;
+  border-radius: 8px;
+  margin: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.message-status-error {
+  margin-bottom: 16px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+}

@@ -1,21 +1,17 @@
 import React from "react";
-import { Card, CardContent, Typography, Box } from "@mui/material";
-import { FaCalculator } from "react-icons/fa";
+import { Card, CardContent, Typography } from "@mui/material";
 
 const CalculatorCard = ({ data }) => {
   return (
-    <Card sx={{ minWidth: 275 }}>
+    <Card variant="outlined">
       <CardContent>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <FaCalculator size={24} />
-          <Typography variant="h6" component="div" sx={{ ml: 1 }}>
-            Calculator Result
-          </Typography>
-        </Box>
-        <Typography variant="body1" sx={{ mb: 1 }}>
+        <Typography variant="h6" gutterBottom>
+          Calculation Result
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
           Expression: {data.expression}
         </Typography>
-        <Typography variant="h5" color="primary">
+        <Typography variant="h4" sx={{ mt: 2 }}>
           = {data.result}
         </Typography>
       </CardContent>

@@ -1,43 +1,30 @@
 import React from "react";
-import { Box, Typography, Card, CardContent } from "@mui/material";
-import { WiDaySunny, WiRain, WiSnow, WiCloudy } from "react-icons/wi";
-import './WeatherCard.css';
+import { Card, CardContent, Typography, Box } from "@mui/material";
 
 const WeatherCard = ({ data }) => {
-  const getWeatherIcon = (iconCode) => {
-    const iconMap = {
-      "01": <WiDaySunny size={50} />,
-      "02": <WiCloudy size={50} />,
-      "03": <WiCloudy size={50} />,
-      "04": <WiCloudy size={50} />,
-      "09": <WiRain size={50} />,
-      10: <WiRain size={50} />,
-      13: <WiSnow size={50} />,
-    };
-    return iconMap[iconCode.slice(0, 2)] || <WiDaySunny size={50} />;
-  };
-
   return (
-    <Card className="weather-card">
+    <Card variant="outlined">
       <CardContent>
-        <Box className="weather-header">
-          {getWeatherIcon(data.icon)}
-          <Typography variant="h5" component="div" className="weather-city">
-            {data.city}
-          </Typography>
+        <Typography variant="h6" gutterBottom>
+          Weather in {data.city}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <img
+            src={`http://openweathermap.org/img/wn/${data.icon}@2x.png`}
+            alt={data.description}
+            style={{ width: 50, height: 50 }}
+          />
+          <Box>
+            <Typography variant="h4">{data.temperature}°C</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {data.description}
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant="h4" component="div" className="weather-temperature">
-          {data.temperature}°C
-        </Typography>
-        <Typography color="text.secondary" className="weather-description">
-          {data.description}
-        </Typography>
-        <Box className="weather-details">
-          <Typography variant="body2" className="weather-detail">
-            Humidity: {data.humidity}%
-          </Typography>
-          <Typography variant="body2" className="weather-detail">
-            Wind: {data.windSpeed} m/s
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2">Humidity: {data.humidity}%</Typography>
+          <Typography variant="body2">
+            Wind Speed: {data.windSpeed} m/s
           </Typography>
         </Box>
       </CardContent>

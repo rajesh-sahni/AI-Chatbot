@@ -1,5 +1,4 @@
 import BasePlugin from "./BasePlugin";
-import axios from "axios";
 
 class DictionaryPlugin extends BasePlugin {
   constructor() {
@@ -8,31 +7,49 @@ class DictionaryPlugin extends BasePlugin {
 
   async process(word) {
     try {
-      const response = await axios.get(
-        `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
-      );
-      return response.data[0];
-    } catch (error) {
-      throw new Error("Word not found in dictionary");
-    }
-  }
+      if (!word) {
+        throw new Error("Please provide a word to define");
+      }
 
-  render(data) {
-    return {
-      type: "dictionary",
-      content: {
-        word: data.word,
-        phonetic: data.phonetic,
-        meanings: data.meanings.map((meaning) => ({
+      const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(
+          word
+        )}`
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`No definition found for "${word}"`);
+        }
+        throw new Error("Failed to fetch definition");
+      }
+
+      const data = await response.json();
+      const firstEntry = data[0];
+
+      return {
+        word: firstEntry.word,
+        phonetic: firstEntry.phonetic,
+        meanings: firstEntry.meanings.map((meaning) => ({
           partOfSpeech: meaning.partOfSpeech,
           definitions: meaning.definitions.map((def) => ({
             definition: def.definition,
             example: def.example,
           })),
         })),
-      },
+      };
+    } catch (error) {
+      throw new Error(error.message || "Failed to fetch definition");
+    }
+  }
+
+  render(data) {
+    return {
+      type: "dictionary",
+      content: data,
     };
   }
 }
 
-export default new DictionaryPlugin();
+const dictionaryPlugin = new DictionaryPlugin();
+export default dictionaryPlugin;

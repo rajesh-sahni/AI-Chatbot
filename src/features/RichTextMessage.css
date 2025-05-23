@@ -1,0 +1,54 @@
+.rich-text-message {
+  padding: 16px;
+  margin-bottom: 16px;
+  max-width: 80%;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.rich-text-message.user {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  align-self: flex-end;
+}
+
+.rich-text-message.assistant {
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  align-self: flex-start;
+}
+
+.rich-text-message pre {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid #e0e0e0;
+}
+
+.rich-text-message code {
+  font-family: "Fira Code", monospace;
+  font-size: 0.9rem;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #1976d2;
+}
+
+.rich-text-message p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.rich-text-message ul,
+.rich-text-message ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.rich-text-message li {
+  margin: 4px 0;
+  line-height: 1.5;
+}

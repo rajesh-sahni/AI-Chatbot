@@ -22,21 +22,20 @@ class WeatherPlugin extends BasePlugin {
       const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
         city
       )}&appid=${this.apiKey}&units=metric`;
-      console.log("Making request to:", url); // Debug log
 
       const response = await axios.get(url);
-      console.log("Response:", response.data); // Debug log
+      const data = response.data;
 
-      return response.data;
+      return {
+        city: data.name,
+        temperature: Math.round(data.main.temp),
+        description: data.weather[0].description,
+        icon: data.weather[0].icon,
+        humidity: data.main.humidity,
+        windSpeed: data.wind.speed,
+      };
     } catch (error) {
-      console.error(
-        "Weather API Error:",
-        error.response?.data || error.message
-      ); // Debug log
-
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 401) {
           throw new Error(
             "Invalid API key. Please check your OpenWeatherMap API key."
@@ -45,38 +44,19 @@ class WeatherPlugin extends BasePlugin {
           throw new Error(
             `City "${city}" not found. Please check the spelling and try again.`
           );
-        } else {
-          throw new Error(
-            `Weather API error: ${
-              error.response.data.message || "Unknown error"
-            }`
-          );
         }
-      } else if (error.request) {
-        // The request was made but no response was received
-        throw new Error(
-          "No response from weather service. Please check your internet connection."
-        );
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        throw new Error(`Error: ${error.message}`);
       }
+      throw new Error("Failed to fetch weather data. Please try again later.");
     }
   }
 
   render(data) {
     return {
       type: "weather",
-      content: {
-        city: data.name,
-        temperature: Math.round(data.main.temp),
-        description: data.weather[0].description,
-        icon: data.weather[0].icon,
-        humidity: data.main.humidity,
-        windSpeed: data.wind.speed,
-      },
+      content: data,
     };
   }
 }
 
-export default new WeatherPlugin();
+const weatherPlugin = new WeatherPlugin();
+export default weatherPlugin;
