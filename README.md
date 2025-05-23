@@ -2,6 +2,10 @@
 
 Hey there! This is a little AI Chatbot I built using React. It's a **responsive web app**, designed to be pretty flexible, especially with how it handles different kinds of requests you type in. The cool abilities you'll find were added as **bonus features** to enhance the chat experience.
 
+## Live Demo
+
+Check out the live demo: [AI Chatbot](https://ai-chatbot-git-main-rajesh-kumars-projects-59faa1d9.vercel.app)
+
 ## Cool Stuff It Can Do (Bonus Features Added!)
 
 - **Easily Add New Abilities:** Think of it like plugins! You can drop in new functionalities without messing up the core chat.
